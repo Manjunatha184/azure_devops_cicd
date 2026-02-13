@@ -10,3 +10,9 @@ steps:
     python3 app.py
   displayName: "Run Python App"
 
+- task: PublishBuildArtifacts@1
+  inputs:
+    pathToPublish: 'output.txt'
+    artifactName: 'my-artifact'
+  displayName: "Publish Artifact"
+
