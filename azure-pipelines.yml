@@ -7,5 +7,6 @@ pool:
 steps:
 - script: |
     echo "Hello from Azure DevOps CI Pipeline"
-    python app.py
+    python3 app.py
   displayName: "Run Python App"
+
