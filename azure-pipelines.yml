@@ -2,17 +2,26 @@ trigger:
 - main
 
 pool:
-  name: Default
+  name: Default   # Your self-hosted agent
 
 steps:
-- script: |
-    echo "Hello from Azure DevOps CI Pipeline"
-    python3 app.py
-  displayName: "Run Python App"
 
+# Step 1: Run app and create file
+- script: |
+    echo "Running Python app..."
+    python3 app.py > output.txt
+
+    echo "Listing files:"
+    ls -la
+
+    echo "Showing output.txt:"
+    cat output.txt
+  displayName: "Run App and Generate File"
+
+
+# Step 2: Publish artifact
 - task: PublishBuildArtifacts@1
   inputs:
     pathToPublish: 'output.txt'
     artifactName: 'my-artifact'
   displayName: "Publish Artifact"
-
