@@ -3,7 +3,7 @@ trigger:
 
 variables:
   artifactName: 'drop'
-  azureServiceConnection: 'Azureconnection'   # must match your Azure RM connection name
+  azureServiceConnection: 'Azureconnection'
   webAppNameDev: 'python-app-testing'
   webAppNameProd: 'python-app-testing'
 
@@ -20,41 +20,55 @@ stages:
   displayName: Build Stage
   jobs:
   - job: BuildJob
-    displayName: Build Python App
     steps:
 
-    # Install dependencies inside virtual environment
     - script: |
-        echo "Creating virtual environment..."
         python3 -m venv venv
         source venv/bin/activate
         pip install --upgrade pip
         pip install -r requirements.txt
       displayName: Install Dependencies
 
-    # Package application
     - script: |
-        echo "Packaging application..."
         zip -r app.zip .
-      displayName: Create ZIP Package
+      displayName: Package Application
 
-    # Publish artifact
     - publish: app.zip
       artifact: $(artifactName)
       displayName: Publish Artifact
 
 
 # =====================================
-# STAGE 2 - DEPLOY TO DEV
+# STAGE 2 - TEST AUTOMATION
 # =====================================
-- stage: Deploy_Dev
-  displayName: Deploy to Dev
+- stage: Test
+  displayName: Run Automated Tests
   dependsOn: Build
   condition: succeeded()
 
   jobs:
+  - job: TestJob
+    steps:
+
+    - script: |
+        python3 -m venv venv
+        source venv/bin/activate
+        pip install --upgrade pip
+        pip install -r requirements.txt
+        pytest
+      displayName: Run Pytest
+
+
+# =====================================
+# STAGE 3 - DEPLOY TO DEV
+# =====================================
+- stage: Deploy_Dev
+  displayName: Deploy to Dev
+  dependsOn: Test
+  condition: succeeded()
+
+  jobs:
   - deployment: DeployDev
-    displayName: Deploy to Dev Environment
     environment: Dev
     strategy:
       runOnce:
@@ -65,7 +79,6 @@ stages:
             artifact: $(artifactName)
 
           - task: AzureWebApp@1
-            displayName: Deploy to Dev App Service
             inputs:
               azureSubscription: $(azureServiceConnection)
               appName: $(webAppNameDev)
@@ -73,7 +86,7 @@ stages:
 
 
 # =====================================
-# STAGE 3 - DEPLOY TO PROD
+# STAGE 4 - DEPLOY TO PROD
 # =====================================
 - stage: Deploy_Prod
   displayName: Deploy to Production
@@ -82,7 +95,6 @@ stages:
 
   jobs:
   - deployment: DeployProd
-    displayName: Deploy to Production Environment
     environment: Production
     strategy:
       runOnce:
@@ -93,7 +105,6 @@ stages:
             artifact: $(artifactName)
 
           - task: AzureWebApp@1
-            displayName: Deploy to Production App Service
             inputs:
               azureSubscription: $(azureServiceConnection)
               appName: $(webAppNameProd)
