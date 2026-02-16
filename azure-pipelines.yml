@@ -12,8 +12,10 @@ variables:
   azureServiceConnection: 'Azureconnection'
   webAppNameDev: 'python-app-testing'
   webAppNameProd: 'python-app-testing'
+  
 pool:
-  vmImage: 'ubuntu-latest'
+  name: Default
+
 
 stages:
 
