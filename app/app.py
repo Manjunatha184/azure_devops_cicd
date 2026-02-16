@@ -4,7 +4,6 @@ app = Flask(__name__)
 
 @app.route("/")
 def home():
-    return "Hello from Azure DevOps CI/CD 🚀"
     return "Updated version deployed automatically 🚀"
 
 if __name__ == "__main__":
