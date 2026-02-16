@@ -1,0 +1,100 @@
+trigger:
+- main
+
+variables:
+  artifactName: 'drop'
+  azureServiceConnection: 'Azureconnection'   # must match your Azure RM connection name
+  webAppNameDev: 'python-app-testing'
+  webAppNameProd: 'python-app-testing'
+
+pool:
+  name: Default   # self-hosted agent
+
+
+stages:
+
+# =====================================
+# STAGE 1 - BUILD
+# =====================================
+- stage: Build
+  displayName: Build Stage
+  jobs:
+  - job: BuildJob
+    displayName: Build Python App
+    steps:
+
+    # Install dependencies inside virtual environment
+    - script: |
+        echo "Creating virtual environment..."
+        python3 -m venv venv
+        source venv/bin/activate
+        pip install --upgrade pip
+        pip install -r requirements.txt
+      displayName: Install Dependencies
+
+    # Package application
+    - script: |
+        echo "Packaging application..."
+        zip -r app.zip .
+      displayName: Create ZIP Package
+
+    # Publish artifact
+    - publish: app.zip
+      artifact: $(artifactName)
+      displayName: Publish Artifact
+
+
+# =====================================
+# STAGE 2 - DEPLOY TO DEV
+# =====================================
+- stage: Deploy_Dev
+  displayName: Deploy to Dev
+  dependsOn: Build
+  condition: succeeded()
+
+  jobs:
+  - deployment: DeployDev
+    displayName: Deploy to Dev Environment
+    environment: Dev
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+
+          - download: current
+            artifact: $(artifactName)
+
+          - task: AzureWebApp@1
+            displayName: Deploy to Dev App Service
+            inputs:
+              azureSubscription: $(azureServiceConnection)
+              appName: $(webAppNameDev)
+              package: $(Pipeline.Workspace)/$(artifactName)/app.zip
+
+
+# =====================================
+# STAGE 3 - DEPLOY TO PROD
+# =====================================
+- stage: Deploy_Prod
+  displayName: Deploy to Production
+  dependsOn: Deploy_Dev
+  condition: succeeded()
+
+  jobs:
+  - deployment: DeployProd
+    displayName: Deploy to Production Environment
+    environment: Production
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+
+          - download: current
+            artifact: $(artifactName)
+
+          - task: AzureWebApp@1
+            displayName: Deploy to Production App Service
+            inputs:
+              azureSubscription: $(azureServiceConnection)
+              appName: $(webAppNameProd)
+              package: $(Pipeline.Workspace)/$(artifactName)/app.zip
