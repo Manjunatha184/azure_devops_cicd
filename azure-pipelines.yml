@@ -9,7 +9,7 @@ trigger:
 variables:
   pythonVersion: '3.10'
   artifactName: 'drop'
-  azureServiceConnection: 'Manjunatha184'
+  azureServiceConnection: 'Azureconnection'
   webAppNameDev: 'python-app-testing'
   webAppNameProd: 'python-app-testing'
 pool:
