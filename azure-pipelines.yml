@@ -1,20 +1,14 @@
-# Starter pipeline
-# Start with a minimal pipeline that you can customize to build and deploy your code.
-# Add steps that build, run tests, deploy, and more:
-# https://aka.ms/yaml
-
 trigger:
 - main
 
 variables:
-  pythonVersion: '3.10'
   artifactName: 'drop'
-  azureServiceConnection: 'Azureconnection'
+  azureServiceConnection: 'Azureconnection'   # must match your Azure RM connection name
   webAppNameDev: 'python-app-testing'
   webAppNameProd: 'python-app-testing'
-  
+
 pool:
-  name: Default
+  name: Default   # self-hosted agent
 
 
 stages:
@@ -26,33 +20,41 @@ stages:
   displayName: Build Stage
   jobs:
   - job: BuildJob
+    displayName: Build Python App
     steps:
 
+    # Install dependencies inside virtual environment
     - script: |
-        python3 --version
-        python3 -m pip install --upgrade pip
-        pip3 install -r requirements.txt
+        echo "Creating virtual environment..."
+        python3 -m venv venv
+        source venv/bin/activate
+        pip install --upgrade pip
+        pip install -r requirements.txt
       displayName: Install Dependencies
 
+    # Package application
     - script: |
+        echo "Packaging application..."
         zip -r app.zip .
-      displayName: Package Application
+      displayName: Create ZIP Package
 
+    # Publish artifact
     - publish: app.zip
-      artifact: drop
+      artifact: $(artifactName)
+      displayName: Publish Artifact
 
 
 # =====================================
 # STAGE 2 - DEPLOY TO DEV
 # =====================================
 - stage: Deploy_Dev
-  displayName: 'Deploy to Dev'
+  displayName: Deploy to Dev
   dependsOn: Build
   condition: succeeded()
 
   jobs:
   - deployment: DeployDev
-    displayName: 'Deploy to Dev Environment'
+    displayName: Deploy to Dev Environment
     environment: Dev
     strategy:
       runOnce:
@@ -63,24 +65,24 @@ stages:
             artifact: $(artifactName)
 
           - task: AzureWebApp@1
-            displayName: 'Deploy to Dev App Service'
+            displayName: Deploy to Dev App Service
             inputs:
-              azureSubscription: '$(azureServiceConnection)'
-              appName: '$(webAppNameDev)'
-              package: '$(Pipeline.Workspace)/$(artifactName)/app.zip'
+              azureSubscription: $(azureServiceConnection)
+              appName: $(webAppNameDev)
+              package: $(Pipeline.Workspace)/$(artifactName)/app.zip
 
 
 # =====================================
-# STAGE 3 - DEPLOY TO PROD (WITH APPROVAL)
+# STAGE 3 - DEPLOY TO PROD
 # =====================================
 - stage: Deploy_Prod
-  displayName: 'Deploy to Production'
+  displayName: Deploy to Production
   dependsOn: Deploy_Dev
   condition: succeeded()
 
   jobs:
   - deployment: DeployProd
-    displayName: 'Deploy to Production Environment'
+    displayName: Deploy to Production Environment
     environment: Production
     strategy:
       runOnce:
@@ -91,8 +93,8 @@ stages:
             artifact: $(artifactName)
 
           - task: AzureWebApp@1
-            displayName: 'Deploy to Production App Service'
+            displayName: Deploy to Production App Service
             inputs:
-              azureSubscription: '$(azureServiceConnection)'
-              appName: '$(webAppNameProd)'
-              package: '$(Pipeline.Workspace)/$(artifactName)/app.zip'
+              azureSubscription: $(azureServiceConnection)
+              appName: $(webAppNameProd)
+              package: $(Pipeline.Workspace)/$(artifactName)/app.zip
