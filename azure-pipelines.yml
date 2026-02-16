@@ -55,9 +55,9 @@ stages:
         source venv/bin/activate
         pip install --upgrade pip
         pip install -r requirements.txt
-        pytest
-      displayName: Run Pytest
 
+        python -m pytest
+      displayName: Run Pytest
 
 # =====================================
 # STAGE 3 - DEPLOY TO DEV
